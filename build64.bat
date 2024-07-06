@@ -11,7 +11,8 @@ pushd %folder% >nul
 
 cmake -A x64 ..
 vs_export -s DetoursCMake.sln -c "Release|x64"
-mklink ..\compile_commands.json compile_commands.json
+del %~dp0compile_commands.json
+mklink %~dp0compile_commands.json %~dp0%folder%\compile_commands.json
 
 cmake --build . --config %config%
 
