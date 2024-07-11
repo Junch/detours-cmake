@@ -67,7 +67,7 @@ DWORD GetPIDbyProcName( const std::wstring &procName ) {
     return pid;
 }
 
-bool DLLinjector( DWORD pid, const std::wstring &dllPath ) {
+bool InjectDll( DWORD pid, const std::wstring &dllPath ) {
     HANDLE hProc = OpenProcess( PROCESS_ALL_ACCESS, FALSE, pid );
     if ( hProc == NULL ) {
         cerr << "OpenProcess() failed: " << GetLastError() << endl;
@@ -158,18 +158,41 @@ BOOL EjectDll(DWORD dwPID, LPCWSTR szDllPath)
     return TRUE;
 }
 
+int consumer_run();
+
+struct ProcessInfo
+{
+    DWORD pid;
+    wchar_t  name[ 1024 ];
+};
+
+DWORD WINAPI injector(LPVOID lpParam)
+{
+    struct ProcessInfo *p = (ProcessInfo *)lpParam;
+
+    // std::cout << "Injecting dll: " << p->name << " into process with pid: " << p->pid << endl;
+    if (!InjectDll(p->pid, p->name)) {
+        std::cerr << "Injection failed!" << std::endl;
+    }
+    delete p;
+    return 0;
+}
+
+
 int main( int argc, char *argv[] ) {
-    DWORD pid = GetPIDbyProcName( L"gfy4.exe" );
+    DWORD pid = GetPIDbyProcName( L"Leak.X64.exe" );
     if ( pid == 0 ) {
         return -1;
     }
 
-    DLLinjector( pid,
-                 L"E:\\GFY\\build\\bin\\x64\\RelWithDebInfo\\GFYTool.dll" );
+    LPVOID pParam = new ProcessInfo{ pid, L"E:\\github\\detours-cmake\\_build64\\bin\\RELEASE\\dllheap.dll" };
+    DWORD creationStatus = 0;
+    HANDLE hThread = ::CreateThread( NULL, 0, injector, pParam, 0, &creationStatus );
 
-    std::cout << "Enter to eject the dll and exit";
-    std::cin.get();
-    EjectDll( pid, L"GFYTool.dll" );
+    Sleep(3000);
+    consumer_run();
+
+    DWORD waitStatus = WaitForSingleObject(hThread, INFINITE);
 
     return 0;
 }

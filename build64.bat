@@ -9,7 +9,7 @@ pushd %folder% >nul
 
 @echo on
 
-cmake -A x64 ..
+cmake -G"Visual Studio 14 2015" -A x64 ..
 vs_export -s DetoursCMake.sln -c "Release|x64"
 del %~dp0compile_commands.json
 mklink %~dp0compile_commands.json %~dp0%folder%\compile_commands.json
